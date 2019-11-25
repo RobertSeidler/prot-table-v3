@@ -1,4 +1,4 @@
-let wcGridTable = require("wc-grid-table");
+let wcGridTable = require("wc-grid-table/src/wc-grid-table.js");
 
 
 
@@ -13,23 +13,29 @@ class ProtTable extends wcGridTable.TableComponent {
   connectedCallback(){
     super.connectedCallback();
 
+    let height = this.getAttribute('height');
+    let pageSize = this.getAttribute('page-size');
+
+    if(height) this.style.maxHeight = height;
+    if(pageSize){
+      this.pagination.pageSize = pageSize;
+      this.options.pagination.pageSize = pageSize;
+    }
+
     fetch('http://prot-subuntu:5985/ang_prot-wiki/prot-wiki_Legende')
       .then(response => response.json())
       .then(response => {
         let links = response.auskunftSchemaLinks;
-        console.log(
-          response.auskunftSchemaLinks
-        );
+
 
         Object.keys(links).forEach(key => {
           let tmp = links[key];
-          console.log(links[key])
           links[key] = [(value) => `<a href="${tmp}${value}">${value}</a>`]
         })
 
         this.formatter = links;
 
-        let jsonUrl = this.getAttribute('jsonUrl');
+        let jsonUrl = this.getAttribute('data_url');
         if(jsonUrl){
           fetch(jsonUrl)
             .then(data => data.json())

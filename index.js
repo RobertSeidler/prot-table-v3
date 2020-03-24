@@ -25,7 +25,7 @@ class ProtTable extends wcGridTable.TableComponent {
       // this.options.pagination.pageSize = 500;
     }
 
-    fetch('http://prot-subuntu:5985/ang_prot-wiki/prot-wiki_Legende')
+    fetch('http://10.19.28.94:5985/ang_prot-wiki/prot-wiki_Legende')
       .then(response => response.json())
       .then(response => {
         let links = response.auskunftSchemaLinks;

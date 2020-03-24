@@ -19,30 +19,39 @@ class ProtTable extends wcGridTable.TableComponent {
     if(height) this.style.maxHeight = height;
     if(pageSize){
       this.pagination.pageSize = pageSize;
-      this.options.pagination.pageSize = pageSize;
+      // this.options.pagination.pageSize = pageSize;
+    } else{
+      this.pagination.pageSize = 500;
+      // this.options.pagination.pageSize = 500;
     }
 
     fetch('http://prot-subuntu:5985/ang_prot-wiki/prot-wiki_Legende')
       .then(response => response.json())
       .then(response => {
         let links = response.auskunftSchemaLinks;
-
-
         Object.keys(links).forEach(key => {
           let tmp = links[key];
           links[key] = [(value) => `<a href="${tmp}${value}">${value}</a>`]
         })
-
         this.formatter = links;
-
-        let jsonUrl = this.getAttribute('data_url');
-        if(jsonUrl){
-          fetch(jsonUrl)
-            .then(data => data.json())
-            .then(data => this.setData(data))
-        }
+        this.setupProtTableData();    
+      })
+      .catch(err => {
+        console.error(err);
+        console.log("caught.");
+        this.setupProtTableData(); 
       });
     
+  }
+
+  setupProtTableData(){
+
+    let jsonUrl = this.getAttribute('data_url');
+    if(jsonUrl){
+      fetch(jsonUrl)
+        .then(data => data.json())
+        .then(data => this.setData(data))
+    }
   }
 }
 

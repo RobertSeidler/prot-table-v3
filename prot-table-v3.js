@@ -1,0 +1,1468 @@
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+let wcGridTable = require("wc-grid-table/src/wc-grid-table.js");
+
+
+
+// wcGridTable.defineCustomElement()
+
+class ProtTable extends wcGridTable.TableComponent {
+  useDefaultOptions(){
+    super.useDefaultOptions();
+    
+  }
+
+  connectedCallback(){
+    super.connectedCallback();
+
+    let height = this.getAttribute('height');
+    let pageSize = this.getAttribute('page-size');
+
+    if(height) this.style.maxHeight = height;
+    if(pageSize){
+      this.pagination.pageSize = pageSize;
+      // this.options.pagination.pageSize = pageSize;
+    } else{
+      this.pagination.pageSize = 500;
+      // this.options.pagination.pageSize = 500;
+    }
+
+    fetch('http://prot-subuntu:5985/ang_prot-wiki/prot-wiki_Legende')
+      .then(response => response.json())
+      .then(response => {
+        let links = response.auskunftSchemaLinks;
+        Object.keys(links).forEach(key => {
+          let tmp = links[key];
+          links[key] = [(value) => `<a href="${tmp}${value}">${value}</a>`]
+        })
+        this.formatter = links;
+        this.setupProtTableData();    
+      })
+      .catch(err => {
+        console.error(err);
+        console.log("caught.");
+        this.setupProtTableData(); 
+      });
+    
+  }
+
+  setupProtTableData(){
+
+    let jsonUrl = this.getAttribute('data_url');
+    if(jsonUrl){
+      fetch(jsonUrl)
+        .then(data => data.json())
+        .then(data => this.setData(data))
+    }
+  }
+}
+
+customElements.define('prot-table-v3', ProtTable);
+
+
+
+// console.log()
+},{"wc-grid-table/src/wc-grid-table.js":6}],2:[function(require,module,exports){
+'use strict';
+// For more information about browser field, check out the browser field at https://github.com/substack/browserify-handbook#browser-field.
+
+var styleElementsInsertedAtTop = [];
+
+var insertStyleElement = function(styleElement, options) {
+    var head = document.head || document.getElementsByTagName('head')[0];
+    var lastStyleElementInsertedAtTop = styleElementsInsertedAtTop[styleElementsInsertedAtTop.length - 1];
+
+    options = options || {};
+    options.insertAt = options.insertAt || 'bottom';
+
+    if (options.insertAt === 'top') {
+        if (!lastStyleElementInsertedAtTop) {
+            head.insertBefore(styleElement, head.firstChild);
+        } else if (lastStyleElementInsertedAtTop.nextSibling) {
+            head.insertBefore(styleElement, lastStyleElementInsertedAtTop.nextSibling);
+        } else {
+            head.appendChild(styleElement);
+        }
+        styleElementsInsertedAtTop.push(styleElement);
+    } else if (options.insertAt === 'bottom') {
+        head.appendChild(styleElement);
+    } else {
+        throw new Error('Invalid value for parameter \'insertAt\'. Must be \'top\' or \'bottom\'.');
+    }
+};
+
+module.exports = {
+    // Create a <link> tag with optional data attributes
+    createLink: function(href, attributes) {
+        var head = document.head || document.getElementsByTagName('head')[0];
+        var link = document.createElement('link');
+
+        link.href = href;
+        link.rel = 'stylesheet';
+
+        for (var key in attributes) {
+            if ( ! attributes.hasOwnProperty(key)) {
+                continue;
+            }
+            var value = attributes[key];
+            link.setAttribute('data-' + key, value);
+        }
+
+        head.appendChild(link);
+    },
+    // Create a <style> tag with optional data attributes
+    createStyle: function(cssText, attributes, extraOptions) {
+        extraOptions = extraOptions || {};
+
+        var style = document.createElement('style');
+        style.type = 'text/css';
+
+        for (var key in attributes) {
+            if ( ! attributes.hasOwnProperty(key)) {
+                continue;
+            }
+            var value = attributes[key];
+            style.setAttribute('data-' + key, value);
+        }
+
+        if (style.sheet) { // for jsdom and IE9+
+            style.innerHTML = cssText;
+            style.sheet.cssText = cssText;
+            insertStyleElement(style, { insertAt: extraOptions.insertAt });
+        } else if (style.styleSheet) { // for IE8 and below
+            insertStyleElement(style, { insertAt: extraOptions.insertAt });
+            style.styleSheet.cssText = cssText;
+        } else { // for Chrome, Firefox, and Safari
+            style.appendChild(document.createTextNode(cssText));
+            insertStyleElement(style, { insertAt: extraOptions.insertAt });
+        }
+    }
+};
+
+},{}],3:[function(require,module,exports){
+/**
+ * Transform the filter input into a RegExp, to let the user have a powerfull way to filter in the table.
+ * Only rows where the tested value matches the RegExp, get displayed. 
+ * Additionally you can prepend three exclamation marks ('!!!') to negate the RegExp, so that only rows that
+ * don't match the RegExp are displayed. This is the default filter function.
+ * This function can be replaced by supplying your own functions to TableComponent.filterOperations.
+ * 
+ * @param {string} filterInput the value of the filter text input field.
+ * @param {string} testValue the table value to validate against.
+ */
+function regexFilter(negate, filterInput, testValue){
+  // let negate = filterInput.substring(0, 3) === '!!!';
+  // filterInput = negate ? filterInput.substring(3) : filterInput;
+  let result = false;
+  if(testValue != undefined){
+    let matches = testValue.toString().match(new RegExp(filterInput, 'i'));
+    result = Boolean(matches) && matches.length > 0;
+  }
+  return negate ? !result : result;
+}
+  
+/**
+ * Test the filter input string with includes (case is ignored) against the table value.
+ * Only rows where the filter input is a substring of the tested value.
+ * Additionally you can prepend three exclamation marks ('!!!') to negate the outcome, 
+ * so that only rows that are not included in the table value are displayed.
+ * This function can replace regexFilter by supplying it to TableComponent.filterOperations or overwriting
+ * regexFilter before use.
+ * 
+ * @param {string} filterInput the value of the filter text input field.
+ * @param {string} testValue the table value to validate against.
+ */
+function textFilter(negate, filterInput, testValue){
+  // let negate = filterInput.substring(0, 3) === '!!!';
+  // filterInput = negate ? filterInput.substring(3) : filterInput;
+  let result = false;
+  if(testValue != undefined){
+    result = testValue.toString().toUpperCase().includes(filterInput.toUpperCase());
+  }
+  return negate ? !result : result;
+}
+
+function compareFilter(operation, filterInput, testValue){
+  let result = false;
+  if(testValue != undefined){
+    try{
+      result = operation(Number.parseFloat(filterInput), Number.parseFloat(testValue));
+    } catch (err){
+      result = operation(filterInput.toString(), testValue.toString());
+    }
+  }
+  return result;
+}
+
+module.exports = {regexFilter, textFilter, compareFilter};
+},{}],4:[function(require,module,exports){
+function getFrameStartEnd(currentPage, totalPages){
+  let start = currentPage - 2;
+  let end = currentPage + 2;
+
+  if (currentPage >= totalPages - 1) {
+    end = totalPages;
+    start = totalPages < 5 ? 1 : totalPages - 4;
+  } else if (currentPage <= 2) {
+    end = totalPages < 5 ? totalPages : 5;
+    start = 1;
+  }
+
+  return {start: start, end: end};
+}
+
+function changePageTo(table, targetPage){
+  table.pagination.currentPage = targetPage;
+  table.serializeLinkOptions();
+  table.redrawData();
+}
+
+function onPageChangeKey(table, event){
+  if (event.keyCode == 37){
+    changePageTo(table, table.pagination.currentPage > 1 ? table.pagination.currentPage - 1 : 1)
+    //table.pagination.currentPage = table.pagination.currentPage > 1 ? table.pagination.currentPage - 1 : 1;
+    //table.redrawData();
+  } else if (event.keyCode == 39){
+    changePageTo(table, table.pagination.currentPage < table.pagination.totalPages ? table.pagination.currentPage + 1 : table.pagination.totalPages);
+    //table.pagination.currentPage = table.pagination.currentPage < table.pagination.totalPages ? table.pagination.currentPage + 1 : table.pagination.totalPages;
+    //table.redrawData();
+  }
+}
+
+function clickHandlerDocument(table, event) {
+  let keyChangeListener = onPageChangeKey.bind(null, table);
+
+  document.removeEventListener('keyup', keyChangeListener);
+  
+  if(table.elements.pageChooser == event.target || table.elements.pageChooser == event.target.parentNode){
+    document.addEventListener('keyup', keyChangeListener);
+    table.elements.pageChooser.classList.add('selected');
+  } else {
+    table.elements.pageChooser.classList.remove('selected');
+  }
+}
+
+let clickHandlerBoundCall = undefined;
+
+function addKeyHandlerToDocument(table){
+  if(!clickHandlerBoundCall) clickHandlerBoundCall = clickHandlerDocument.bind(null, table);
+  document.removeEventListener('click', clickHandlerBoundCall);
+  document.addEventListener('click', clickHandlerBoundCall);
+}
+
+function createPageChooser(table, data) {
+  let element = document.createElement('div');
+  let currentPage = table.pagination.currentPage;
+  let totalPages = table.pagination.totalPages;
+  if (table.pagination.active) {
+    element.classList.add('page-chooser', 'wgt-pagination');
+    let front_disabled = currentPage == 1
+    let back_disabled = currentPage == totalPages;
+    element.append(createPageChooserChild('<<', table, 1, false, front_disabled));
+    element.append(createPageChooserChild('<', table, currentPage - 1, false, front_disabled));
+    let {start, end} = getFrameStartEnd(currentPage, totalPages);
+    for (let i = start; i <= end; i++) {
+      if (currentPage == i) {
+        element.append(createPageChooserChild(i.toString(), table, i, true));
+      } else {
+        element.append(createPageChooserChild(i.toString(), table, i));
+      }
+    }
+    element.append(createPageChooserChild('>', table, currentPage + 1, false, back_disabled));
+    element.append(createPageChooserChild('>>', table, totalPages, false, back_disabled));
+  }
+  return element;
+}
+
+function createPageChooserChild(content, table, targetPage, isCurrent, isDisabled) {
+  let element = document.createElement('div');
+  element.innerHTML = content;
+  element.classList.add('page-change', 'wgt-pagination');
+  if (isCurrent) {
+    element.classList.add('active-page');
+  } else {
+    if (isDisabled) {
+      element.classList.add('page-change-disabled');
+    } else {
+      element.addEventListener('click', (event) => {
+        changePageTo(table, targetPage)
+        //table.pagination.currentPage = targetPage;
+        //table.redrawData();
+      });
+    }
+  }
+  return element;
+}
+
+module.exports = {
+  getFrameStartEnd,
+  createPageChooser,
+  createPageChooserChild,
+  addKeyHandlerToDocument,
+  changePageTo,
+}
+},{}],5:[function(require,module,exports){
+var css = "/* body {\n  font: arial, sans-serif;\n} */\n.wgt-grid-container {\n  display: grid;\n  position: static;\n  max-width: min-content;\n  max-height: 500px;\n  overflow-y: scroll;\n  background: lightgray;\n  /* grid-gap: 1px; */\n  /* grid-row-gap: 2px; */\n  grid-column-gap: 2px;\n  border: 1px solid lightgray;\n}\n.header-col-tooltip {\n  position: absolute;\n  font-weight: bold;\n  border: 1px solid lightgray;\n  border-right: 1px dotted lightgray;\n  pointer-events: none;\n  z-index: 99;\n  visibility: hidden;\n  margin: -1px;\n}\n.header-col-tooltip.visible {\n  visibility: visible;\n}\n.wgt-header {\n  font-weight: bold;\n  position: sticky;\n  box-sizing: border-box;\n  top: 0px;\n  border-bottom: 1px solid lightgray;\n  overflow-y: hidden;\n}\n.wgt-header>div.arrow {\n  /* visibility: hidden; */\n  color: lightgray;\n  width: 1em;\n  position: absolute;\n  font-weight: bold;\n  top: 0px;\n  bottom: 0px;\n  right: 0px;\n  padding-right: 5px;\n  margin-top: auto;\n  margin-bottom: auto;\n  font-family: monospace;\n  font-size: large;\n  vertical-align: middle;\n  padding-top: 5px;\n  padding-bottom: 5px;\n  cursor: pointer;\n  -moz-user-select: text;\n  background: white;\n  text-align: center;\n  transform: scale(1,2)translate(20%, 13%);\n}\n.wgt-col-header-container {\n  width: 1em;\n  overflow-x: visible;\n}\n.wgt-filter_cell {\n  position: sticky;\n  top: 0px;\n  background: white;\n  box-sizing: border-box;\n  width: 100%;\n  height: 2em;\n  text-align: center;\n  vertical-align: middle;\n  font-size: 1rem;\n  border-bottom: 1px solid lightgray;\n  box-shadow: inset 1px 1px 5px 0px lightgrey;\n  padding-top: 5px;\n  padding-bottom: 5px;\n  margin-top: auto;\n  margin-bottom: auto;\n}\n.filter_input {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  bottom: 0px;\n  right: 0px;\n  margin-top: auto;\n  margin-bottom: auto;\n  padding-top: 5px;\n  padding-bottom: 5px;\n}\n.filter_negator {\n  position: absolute;\n  font-weight: bold;\n  top: 0px;\n  bottom: 0px;\n  left: 0px;\n  padding-left: 5px;\n  margin-top: auto;\n  margin-bottom: auto;\n  font-family: monospace;\n  font-size: 1em;\n  vertical-align: middle;\n  padding-top: 5px;\n  padding-bottom: 5px;\n  cursor: pointer;\n}\n.wgt-cell {\n  box-sizing: border-box;\n  font-size: 1rem;\n  padding-left: 20px;\n  padding-right: 20px;\n  padding-top: 10px;\n  padding-bottom: 10px;\n  background: white;\n  /* border: 2px solid lightgray; */\n  overflow-x: hidden;\n}\n.wgt-data-cell {\n  max-width: 500px;\n}\n.wgt-header.wgt-cell {\n  padding-right: 30px;\n}\n.wgt-zebra_1 {\n  background: white;\n}\n.wgt-zebra_0 {\n  background: rgb(230, 230, 230);\n}\n.wgt-footer {\n  display: grid;\n  position: sticky;\n  bottom: 0px;\n  background: white;\n  border-top: 1px solid lightgray;\n  grid-template-rows: 1fr;\n  grid-template-columns: repeat(4, fit-content(300px)) 1fr;\n}\n.footer-button {\n  position: relative;\n  border: 1px solid rgba(27, 31, 35, .2);\n  /* border-radius: .25em; */\n  width: min-content;\n  overflow: visible;\n  cursor: pointer;\n  background-color: #eff3f6;\n  background-image: linear-gradient(-180deg, #fafbfc, eff3f6, 90%);\n  background-repeat: repeat-x;\n  background-position: -1px -1px;\n  background-size: 110% 110%;\n  -webkit-appearance: none;\n  -moz-appearance: none;\n  appearance: none;\n  user-select: none;\n}\n.footer-button:hover {\n  box-shadow: inset 0px 0px 20px 2px rgba(0, 0, 0, 0.2);\n}\n.footer-button-down:after {\n  display: inline-block;\n  width: 0px;\n  height: 0px;\n  vertical-align: -2px;\n  content: \"\";\n  border: 4px solid transparent;\n  border-top-color: currentcolor;\n}\n.column-chooser-menu-container {\n  /* position: absolute; */\n  position: relative;\n  width: 200px;\n  /* top: 0px; */\n  /* bottom: 0px; */\n  left: 0px;\n  /* right: 0px; */\n  /* background-color: rgba(0,0,0,.5); */\n  z-index: 99;\n  visibility: visible;\n}\n.column-chooser-menu {\n  margin-top: auto;\n  margin-bottom: auto;\n  overflow: hidden;\n  color: black;\n  border: 1px solid rgba(100, 100, 100, 0.5);\n  border-radius: 5px;\n  list-style: none;\n  padding-left: 0px;\n  background-color: lightgray;\n  box-shadow: 1px 2px 10px 2px rgba(0, 0, 0, 0.2);\n}\n.column-chooser-menu-container.hidden {\n  visibility: hidden;\n}\n.column-chooser-item {\n  background-color: white;\n  /* border-radius: 5px; */\n  margin-top: 1px;\n  user-select: none;\n  white-space: nowrap;\n}\n.column-chooser-item:first-child {\n  margin-top: 0px;\n}\n.column-chooser-item:hover {\n  background-color: lightblue;\n  box-sizing: border-box;\n  background-clip: padding-box;\n  border-radius: 5px;\n}\n.column-chooser-item>label {\n  display: block;\n  cursor: pointer;\n  padding: 5px 20px 5px 5px;\n}\n.page-chooser {\n  display: grid;\n  grid-template-rows: auto;\n  grid-template-columns: repeat(9, auto);\n  font-family: monospace;\n  grid-column: -1;\n  border-left: none;\n  position: sticky;\n  right: 0px;\n}\n.page-chooser.selected {\n  border-left: 1px dotted gray;\n}\n.page-change {\n  margin-top: auto;\n  margin-bottom: auto;\n  padding-left: 5px;\n  padding-right: 5px;\n}\n.page-change:first-child {\n  margin-top: auto !important;\n}\n.page-change:not(.page-change-disabled) {\n  cursor: pointer;\n}\n.page-change-disabled {\n  color: gray;\n}\n.active-page {\n  font-weight: bold;\n}\n.wgt-footer_cell {\n  border-right: 1px solid lightgray;\n  width: max-content;\n}\n@-moz-document url-prefix()  {\n  .wgt-grid-container div:nth-last-child(2).wgt-data-cell {\n    height: 200%;\n  }\n\n  .filter_negator {\n    font-size: 1em;\n  }\n}\n"; (require("browserify-css").createStyle(css, { "href": "node_modules/wc-grid-table/src/wc-grid-table.css" }, { "insertAt": "bottom" })); module.exports = css;
+},{"browserify-css":2}],6:[function(require,module,exports){
+//? FEATURE: maybe add possibility for horizontal header either
+//? Top -> Down - css: { writing-mode: sideways-rl, text-orientation : sideways } or
+//? Bottom -> Up - css: { writing-mode: sideways-lr, text-orientation : sideways }
+
+//! TODO: try to add Event listener for visibilitychange, to fix filter column sticky top value for WIKI Tab change;
+//! should be implemented in prot-table-v3
+
+
+/**
+ * Project: wc-grid-table
+ * Repository: https://github.com/RobertSeidler/wc-grid-table
+ * Auther: Robert Seidler
+ * Email: Robert.Seidler1@googlemail.com 
+ * License: ISC
+ */
+
+require('./wc-grid-table.css');
+
+// test exception tracker with an actual module.
+//TODO: Comment out before packaging
+let appname = 'wc-grid-table';
+// let tracker = require('../../exception-tracker-server/test-client/tracker.js')
+//   .Tracker
+//   .injectConsole('http://localhost:52005/', 'wc-grid-table', true, true, true);
+
+
+const {regexFilter, textFilter, compareFilter} = require('./filter-utils.js');
+const {createPageChooser, addKeyHandlerToDocument} = require('./pagination-utils.js');
+
+module.exports = (function(){
+  // Closure, so that only functions I want to expose are getting exposed.
+
+  function defineSetPrototypeFunctions(){
+    /**
+     * @param {Iterable} an iterable, that should be unioned with the starting Set
+     */
+    Object.defineProperty(Set.prototype, 'union', {
+      value: function(anotherSet){
+        for(element of anotherSet){
+          console.log(element)
+          this.add(element);
+        }
+        return this;
+      },
+      enumerable: false,
+      writable: true,
+    });
+  }
+
+  const testNumberRegex = /^([0-9]{1,3}(?:[\.|,]{0,1}[0-9]{3})*[\.|\,]{0,1}[0-9]*)\s{0,1}\D*$/i;
+
+  function tryTransformToNumber(testStr){
+    let matches = testNumberRegex.exec(testStr.toString());
+    let result;
+    if(matches){
+      result = Number.parseFloat(matches[1]);
+    } else {
+      result = testStr;
+    }
+    return result;
+  }
+
+  /**
+   * Compare function for comparing numbers for sorting. Additionally undefined values are 
+   * always the 'smaller' value, so that they get sorted to the bottom.
+   * Can be replaced by supplying a custom compare function to TableComponent.customCompareNumbers.
+   * 
+   * @param {number} a number to compare. 
+   * @param {number} b number to compare.
+   */
+  function compareNumbers(a, b){
+    if (a == undefined || a === '') return 1;
+    if (b == undefined || b === '') return -1;
+    return tryTransformToNumber(b) - tryTransformToNumber(a);
+  }
+  
+/**
+   * Compare function for comparing strings for sorting. Additionally undefined values are
+   * always the 'smaller' value, so that they get sorted to the bottom. 
+   * Can be replaced by supplying a custom compare function to TableComponent.customCompareText.
+   * 
+   * @param {string} a text to compare.
+   * @param {string} b text to compare.
+   */
+  function compareText(a, b){
+    let result = 0;
+    if (a == undefined || a === '') return 1;
+    if (b == undefined || b === '') return -1;
+    if (a.toString() > b.toString()) result = -1;
+    if (a.toString() < b.toString()) result = 1;
+    return result;
+  }
+  
+  /**
+   * Map different compare functions, depending on the content of this column. Default is a distinction between numbers and text.
+   * The chooseSortCompareFn as well as the compareNumbers and compareText functions can be replaced by custom ones.
+   * chooseSortCompareFn -> TableComponent.customChooseSortsCompareFn
+   * 
+   * @param {TableComponent} table the active instance of TableComponent.
+   * @param {Array<Object>} data 
+   * @param {string} column the column name (header) for which a compare function is to choose. 
+   */
+  function chooseSortsCompareFn(table, data, column){
+    // if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
+    if(data.every(row => (typeof(tryTransformToNumber(row[column])) == 'number'))){
+      return table.customCompareNumbers
+    } else {
+      return table.customCompareText
+    }
+  }
+  
+  /**
+   * Register the TableComponent to the customElementRegistry, so that it can be used as a WebComponent.
+   * 
+   * @param {class} TableComponent 
+   */
+  function defineCustomElement(){
+    customElements.define('wc-grid-table', TableComponent);
+  }
+
+  function onSortClick(table, column, event, doRedraw){
+    if(table.header.includes(column)){
+      if(table.sortedBy.length > 0){
+        if(table.sortedBy[0].col === column){
+          table.sortedBy[0].dir = table.sortedBy[0].dir === "asc" ? "desc" : "asc";
+          table.elements.sortArrows[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
+          // table.sortedData = [].concat(table.sortedData.filter(entry => entry[column] != undefined).reverse(), table.sortedData.filter(entry => entry[column] == undefined));
+          // table.redrawData();
+          // return;
+        } else {
+          table.header.filter(header_key => header_key !== column).forEach(header_key => {
+            if(table.elements.sortArrows[header_key].innerHTML !== '&#8693;') {
+              table.elements.sortArrows[header_key].arrowAlphaColor = table.elements.sortArrows[header_key].arrowAlphaColor * 0.5;
+              table.elements.sortArrows[header_key].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[header_key].arrowAlphaColor})`;
+            }
+          });
+          table.sortedBy = [].concat([new Object({col: column, dir: "asc"})], table.sortedBy);
+        }
+        table.elements.sortArrows[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
+        table.elements.sortArrows[column].arrowAlphaColor = 1;
+        table.elements.sortArrows[column].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[column].arrowAlphaColor})`;
+      } else {
+        table.sortedBy = [].concat(table.sortedBy, [new Object({col: column, dir: "asc"})]);
+        table.elements.sortArrows[column].innerHTML = "&uarr;";
+        table.elements.sortArrows[column].arrowAlphaColor = 1;
+        table.elements.sortArrows[column].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[column].arrowAlphaColor})`;
+      }
+      table.serializeLinkOptions()
+      if(doRedraw) table.redrawData()
+    }
+  }
+
+  
+  function transformToGroupedData(initialData, groupColumns){
+    let groups = initialData.map(fullRow => {
+      let result = {};
+      groupColumns.forEach(groupColumn => {
+        result[groupColumn] = fullRow[groupColumn];
+      });
+      return result;
+    })
+      .reduce((col, cur) => (
+        !col.includes(cur) ? [].concat(col, [cur]) : col), []);
+
+    // console.log(groups);
+  }
+
+  function filterChanged(table, column, event){
+    table.pagination.currentPage = 1;
+    table.filter[column] = event.srcElement.textContent;
+    table.redrawData();
+    table.serializeLinkOptions()
+  }
+
+  /**
+   * table.filterNegate[column] === undefined shall be equal to 'contains'.
+   * @param {*} table 
+   * @param {*} column 
+   * @param {*} event 
+   */
+  function toggleFilterNegator(table, column, event){
+    let newOperation = table.activeFilterOperations[column];
+    if(newOperation === undefined || newOperation == '') newOperation = table.filterOperations[0].name;
+    newOperation = table.filterOperations[(table.filterOperations.findIndex(element => (element.name == newOperation)) + 1) % table.filterOperations.length].name;
+    if(table.elements.filterOperations[column]) table.elements.filterOperations[column].innerHTML = table.filterOperations.find(op => op.name == newOperation).char;
+    table.activeFilterOperations[column] = newOperation;
+    table.redrawData();
+    table.serializeLinkOptions();
+  }
+
+  function setUpSorting(element, column, table){
+    element.addEventListener('click', (event) => onSortClick(table, column, event, true))
+  }
+
+  function createHeaderTooltip(table){
+    let tooltip = table.elements.tooltip = document.createElement('div');
+    tooltip.state = {
+      offsetLeft: 0
+    }
+    tooltip.classList.add('header-col-tooltip');
+    tooltip.classList.add('wgt-cell');
+    table.append(tooltip)
+  }
+
+  function onHeaderMouseEnter(table, columnElement, columnName){
+    table.elements.tooltip.innerHTML = columnName;
+    table.elements.tooltip.state.offsetLeft = columnElement.offsetLeft;
+    table.elements.tooltip.style.left = `${(columnElement.offsetLeft) - table.scrollLeft}px`;
+    table.elements.tooltip.classList.add('visible');
+  }
+
+  function onHeaderMouseLeave(table, columnElement, columnName){
+    table.elements.tooltip.classList.remove('visible');
+  }
+
+  function createHeader(table){
+    let col_height = 0;
+    createHeaderTooltip(table);
+    if(!table.elements.header) table.elements.header = {};
+    table.header.forEach( (column, columnIndex) => {
+      let col_header = document.createElement('div');
+      col_header.classList.add('wgt-header')
+      col_header.classList.add(`wgt-column_${column}`)
+      col_header.classList.add('wgt-cell');
+      let col_container = document.createElement('div');
+      col_container.classList.add('wgt-col-header-container');
+      col_container.innerHTML = column;
+      col_header.append(col_container);
+      col_header.addEventListener('mouseenter', onHeaderMouseEnter.bind(this, table, col_header, column));
+      col_header.addEventListener('mouseleave', onHeaderMouseLeave.bind(this, table, col_header, column));
+      table.append(col_header)
+      col_height = col_header.offsetHeight;
+      let sort_arrow = document.createElement('div');
+      sort_arrow.classList.add('arrow');
+      sort_arrow.innerHTML = '&#8693;';
+      sort_arrow.addEventListener('mouseenter', function (event){
+        onHeaderMouseLeave(table, col_header, column);
+        event.stopPropagation();
+      });
+      sort_arrow.addEventListener('mouseleave', onHeaderMouseEnter.bind(this, table, col_header, column));
+      table.elements.header[column] = col_header;
+      table.elements.sortArrows[column] = sort_arrow;
+      setUpSorting(sort_arrow, column, table)
+      col_header.append(sort_arrow)
+
+    });
+    table.addEventListener('scroll', (event) => {
+      table.elements.tooltip.style.left = `${(table.elements.tooltip.state.offsetLeft) - table.scrollLeft}px`;
+    });
+    requestAnimationFrame(() => {
+      table.header.forEach( (column, columnIndex) => {
+        let col_header = table.elements.header[column];
+        col_height = col_header.offsetHeight;
+      })
+      createStickyFilterStyle(table, col_height);
+    })
+
+    // createStickyFilterStyle(table, col_height);
+  }
+
+  function createStickyFilterStyle(table, col_height){
+    let tmp_style = table.elements.stickyStyle;
+    if(!tmp_style){
+      table.elements.stickyStyle = tmp_style = document.createElement('style');
+      tmp_style.type = "text/css";
+      tmp_style.classList.add('sticky_filter_offset');
+    }
+    tmp_style.innerHTML = `
+      .wgt-filter_cell {
+        top: ${col_height}px;
+      }
+    `;    
+    table.root_document.head.append(tmp_style);
+  }
+
+  function createFilter(table, header, filter){
+    table.elements.filterCells = {};
+    table.elements.filterOperations = {};
+    header.forEach(column => {
+      let filter_container = document.createElement('div');
+      // let filter_input = document.createElement('input');
+      // filter_input.type = 'text';
+      // filter_input.classList.add('wgt-filter_input');
+      // filter_input.value = filter[column] ? filter[column] : '';
+      // filter_container.addEventListener('input', event => filterChanged.bind(null, table, column)(event))
+      filter_container.classList.add('wgt-filter_cell', `wgt-filter_cell_${column}`, 'wgt-filter_input');
+      // filter_container.contentEditable = 'true';
+
+      let filter_input = document.createElement('div')
+      filter_input.addEventListener('input', event => filterChanged.bind(null, table, column)(event));
+      filter_input.classList.add('filter_input');
+      filter_input.contentEditable = 'true';
+      let filter_negate = document.createElement('div');
+      table.elements.filterOperations[column] = filter_negate;
+      filter_negate.innerHTML = '&sube;';
+      filter_negate.classList.add('filter_negator');
+      
+      filter_negate.addEventListener('click', event => toggleFilterNegator.bind(null, table, column)(event))
+      // filter_negate.style.position = 'absolute';
+      // filter_negate.style.
+      // filter_container.append(filter_input);
+      filter_container.append(filter_input);
+      filter_container.append(filter_negate);
+      table.elements.filterCells[column] = filter_container;
+      table.append(filter_container);
+    })
+  }
+
+  function createResetLinkButton(table){
+    let btn = document.createElement('div');
+    btn.classList.add('footer-button', 'wgt-footer-cell', 'wgt-cell');
+    btn.innerHTML = 'reset';
+    btn.addEventListener('click', function(event){
+      if(confirm('Sicher, dass alle angewendeten Umformungen zurückgesetzt werden sollen')){
+        let url = new URL(location.href);
+        url.search = '';
+        location.href = url.href;
+      }
+    });
+    return btn;
+  }
+
+  function createFooter(table, data, pageChooser){
+    bindColumnChooserHandler(table); 
+    let footer = document.createElement('div');
+    footer.classList.add('wgt-footer')
+    footer.style.gridColumn = `1 / ${table.header.length + 1}`
+
+    if(!table.elements.columnChooserMenuContainer){
+      table.elements.columnChooserMenuContainer = createColumnChooserMenuContainer(table, table.headerAll);
+      table.parentElement.insertBefore(table.elements.columnChooserMenuContainer, table.nextSibling);
+    }
+    
+    let total_rows = document.createElement('div');
+    total_rows.innerHTML = `Total: ${table.data.length}`;
+    total_rows.classList.add('wgt-footer_cell', 'wgt-cell')
+    footer.append(total_rows)
+    table.elements.total_rows = total_rows;
+
+    if(table.data.length !== data.length){
+      let filtered_row_count = document.createElement('div');
+      filtered_row_count.innerHTML = `Filtered: ${data.length}${table.pagination.active ? ` / ${table.pagination.filteredDataCount}` : ''}`;
+      filtered_row_count.classList.add('wgt-footer_cell', 'wgt-cell')
+      footer.append(filtered_row_count)
+      table.elements.filtered_row_count = filtered_row_count;
+    }
+    
+    if(footer) footer.append(createColumnChooserButton(table));
+    if(table.drawOptionals.rewriteurl) footer.append(createResetLinkButton(table));
+    if(pageChooser) footer.append(pageChooser);
+    if(table.elements.footer) table.elements.footer.remove();
+    table.elements.footer = footer;
+    table.append(footer);
+  }
+
+  let boundColumnChooserButtonHandler = undefined;
+  let boundColumnChooserOutsideHandler = undefined;
+  let boundColumnChooserChangeColumnHandler = undefined;
+
+  function bindColumnChooserHandler(table){
+    boundColumnChooserButtonHandler = onColumnChooserButtonHandler.bind(null, table);
+    boundColumnChooserOutsideHandler = onColumnChooserOutsideHandler.bind(null, table);
+  }
+
+  function createColumnChooserButton(table){
+    let but = document.createElement('div');
+    but.classList.add('wgt-footer_cell', 'wgt-cell', 'footer-button-down', 'footer-button');
+    but.innerHTML = 'columns';
+    but.addEventListener('click', boundColumnChooserButtonHandler);
+    return but;    
+  }
+
+  function createColumnChooserMenuItems(table, column){
+    let colItem = document.createElement('li');
+    colItem.classList.add('column-chooser-item', 'column-chooser');
+    let label = document.createElement('label');
+    label.innerHTML = column;
+    label.setAttribute('name', column + '_checkbox');
+    label.classList.add('column-chooser');
+    let checkBox = document.createElement('input');
+    checkBox.setAttribute('type', 'checkbox');
+    checkBox.setAttribute('name', column + '_checkbox');
+    if(!table.hiddenColumns.includes(column)){
+      checkBox.toggleAttribute('checked');
+    }
+    checkBox.classList.add('column-chooser');
+    boundColumnChooserChangeColumnHandler = onColumnChooserChangeColumnHandler.bind(null, table, column);
+    checkBox.addEventListener('change', boundColumnChooserChangeColumnHandler);
+    table.elements.columnChooserCheckbox[column] = checkBox;
+    label.prepend(checkBox);
+    // label.innerHTML += column; 
+    colItem.append(label);
+    return colItem;
+  }
+
+  function createColumnChooserMenuContainer(table, allHeader){
+    if(!table.elements.columnChooserCheckbox) table.elements.columnChooserCheckbox = {};
+    let menu = document.createElement('ul');
+    menu.classList.add('column-chooser-menu', 'column-chooser');
+    let menuContainer = document.createElement('div');
+    menuContainer.classList.add('column-chooser-menu-container', 'hidden')
+    console.log((new Set(allHeader)).union(table.hiddenColumns));
+    ((new Set(allHeader)).union(table.hiddenColumns)).forEach(column => {
+      menu.append(createColumnChooserMenuItems(table, column));
+    })
+    menuContainer.append(menu)
+    // table.elements.columnChooserMenuContainer = menuContainer;
+    return menuContainer;
+  }
+
+  function onColumnChooserButtonHandler(table, event){
+    let offset = table.offsetLeft;
+
+    if(table.elements.total_rows){
+      offset += table.elements.total_rows.offsetWidth;
+    }
+    if(table.elements.filtered_row_count){
+      offset += table.elements.filtered_row_count.offsetWidth;
+    }
+
+    table.elements.columnChooserMenuContainer.style.left = `${offset}px`;
+
+    let classList = table.elements.columnChooserMenuContainer.classList;
+    if(classList.contains('hidden')){
+      classList.remove('hidden');
+      table.root_document.addEventListener('click', boundColumnChooserOutsideHandler)
+    } else {
+      classList.add('hidden')
+      table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
+    }
+
+  }
+
+  function onColumnChooserOutsideHandler(table, event){
+    if(!event.srcElement.classList.contains('column-chooser')){
+      if(!event.srcElement.classList.contains('footer-button')){
+        let classList = table.elements.columnChooserMenuContainer.classList;
+        classList.add('hidden');
+        table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
+      }
+    }
+  }
+
+  function onColumnChooserChangeColumnHandler(table, column, event){
+    if(event.srcElement.checked){
+      table.hiddenColumns = table.hiddenColumns.filter(entry => entry != column);
+    } else {
+      table.hiddenColumns.push(column);
+    }
+    table.serializeLinkOptions();
+    table.redrawTable();
+  }
+
+  function fillData(table, data){
+    table.elements.dataCells = {};
+    data.forEach((row, rowIndex) => {
+      table.header.forEach( (column, columnIndex) => {
+        let cell = document.createElement('div');
+        cell.classList.add('wgt-cell', 'wgt-data-cell', `wgt-column_${column}`, `wgt-row_${rowIndex}`, `wgt-zebra_${rowIndex % 2}`)
+        // cell.classList.add()
+        // cell.classList.add()
+        cell.innerHTML = row[column] != undefined ? row[column] : '';
+        if(!table.elements.dataCells[column]) table.elements.dataCells[column] = [];
+        table.elements.dataCells[column].push(cell);
+        table.append(cell)
+      })
+    })
+  }
+
+  /**
+   * Read the column names (header) from the data, if they are not supplyed. 
+   * 
+   * @param {Array<Object>} data 
+   * @returns {Array<string>} the list of column names.
+   */
+  function generateHeader(data){
+    return data.map(Object.keys).reduce((col, cur) => {
+      let result = col;
+      cur.forEach(value => {
+        if(!col.includes(value)) result.push(value)
+      })
+      return result;
+    }, [])
+  }
+
+  function applyConditionalColumnStyling(table, data, header, conditionalColumnStyle, options){
+    if(options.active){
+      let column_style_element = table.elements.columnStyle;
+      if(!column_style_element){
+        table.elements.columnStyle = column_style_element = document.createElement('style');
+        column_style_element.type = "text/css";
+        column_style_element.classList.add('column_styles');
+        table.root_document.head.append(column_style_element);
+      }
+      column_style_element.innerHTML = '';
+      header.forEach(column => {
+        conditionalColumnStyle.forEach((conditionalStyle) => {
+          if(conditionalStyle.condition(data, column)){
+            column_style_element.innerHTML += `
+              div.wgt-column_${column}.wgt-data-cell {
+                ${conditionalStyle.styles.join('\n')}
+              }
+            `
+          }
+        })
+      })
+    }
+  }
+
+  function applyConditionalRowStyling(table, data, header, conditionalRowStyle, options){
+    if(options.active){
+      let row_style_element = table.elements.columnStyle;
+      if(!row_style_element){
+        table.elements.columnStyle = row_style_element = document.createElement('style');
+        row_style_element.type = "text/css";
+        row_style_element.classList.add('row_styles');
+        table.root_document.head.append(row_style_element);
+      }
+      row_style_element.innerHTML = '';
+      Object.keys(conditionalRowStyle).forEach(column => {
+        data.forEach((row, row_index) => {
+          conditionalRowStyle[column].forEach(conditionalStyle => {
+            if(conditionalStyle.condition(row[column], row_index)){
+              row_style_element.innerHTML += `div${conditionalStyle.fullrow ? '' : `.wgt-column_${column}`}.wgt-row_${row_index} {\n`
+              row_style_element.innerHTML += conditionalStyle.styles.join('\n')
+              row_style_element.innerHTML += '\n}'
+            }
+          })
+        }) 
+      })
+      // table.root_document.querySelector('head').append(row_style_element)
+    }
+  }
+
+  function resetSorting(table){
+    table.sortedData = table.data ? table.data.map(value => value) : [];
+    table.sortedBy = [];
+    if(table.header) table.header.forEach(column => {
+      table.elements.sortArrows[column].innerHTML = '&#8693;';
+      table.elements.sortArrows[column].arrowAlphaColor = 1.0;
+      table.elements.sortArrows[column].style.color = `lightgray`;
+    });
+  }
+
+  function resetFilterOperations(table){
+    table.header.forEach(column => {
+      let operation = table.filterOperations.find(op => (op.name == table.activeFilterOperations[column]));
+      if(operation) table.elements.filterOperations[column].innerHTML = operation.char;
+    });    
+  }
+
+  function applySorting(table, column){
+    // if(column) {
+    //   return table.sortedData.sort((a, b) => {
+    //     return table.customChooseSortsCompareFn(table, table.sortedData, column)(a[column], b[column])
+    //   })
+    // } else 
+    if(table.sortedBy && table.sortedBy.length > 0) {
+      column = table.sortedBy[0].col;
+      let sorted = table.sortedData.sort((a, b) => {
+        return table.customChooseSortsCompareFn(table, table.data, column)(a[column], b[column])
+      })
+      if(table.sortedBy[0].dir === 'desc')
+        sorted = [].concat(sorted.filter(entry => entry[column] != undefined && entry[column] !== '').reverse(), sorted.filter(entry => entry[column] == undefined || entry[column] === ''));
+      return sorted;
+    } else {
+      return table.sortedData;
+    }
+  }
+
+  function applyFilter(table, data, header, filter, options){
+    if(options.active){
+      return data.filter(row => 
+        header.map(column => {
+          if(filter[column]){
+            if (table.activeFilterOperations[column] == '' || table.activeFilterOperations[column] == undefined) table.activeFilterOperations[column] = table.filterOperations[0].name;
+            return table.filterOperations.find(op => (op.name == table.activeFilterOperations[column])).fn(filter[column], row[column]);
+          } else return true;
+        }).reduce((col, cur) => (col && cur), true)
+      )
+    } else {
+      return data;
+    }
+  }
+
+  function applyFormatter(data, header, formatter, options){
+    if(options.active){
+      return data.map((row, rowNr, dataReadOnly) => {
+        let formattedRow = {}; 
+        header.forEach(column => {
+          if(formatter[column]){
+            formattedRow[column] = formatter[column].reduce((col, cur) => cur(col, rowNr, dataReadOnly), row[column])//.toString();
+          } else {
+            formattedRow[column] = row[column]
+          }
+        })
+        return formattedRow;
+      }) 
+    } else {
+      return data;
+    }
+  }
+
+  function applyPagination(table, data){
+    let result = data;
+    table.pagination.active = table.paginationOptions.active;
+    table.pagination.totalPages = table.pagination.active ? Math.ceil(data.length / table.pagination.pageSize) : 1;
+    if(table.pagination.totalPages == 1){
+      table.pagination.active = false;
+    } else {
+      result = data.filter((value, index) => 
+        !table.pagination.active
+        || ((index >= (table.pagination.currentPage - 1) * table.pagination.pageSize) 
+        && (index < (table.pagination.currentPage) * table.pagination.pageSize))
+      );
+    }
+    return result;
+  }
+
+  function drawTable(table){
+    table.elements.sortArrows = {};
+
+    table.drawOptionals = {
+      header: !table.hasAttribute('noheader'),
+      filter: !table.hasAttribute('nofilter'), //! TODO fix Broken nofilter
+      footer: !table.hasAttribute('nofooter'),
+      pagekey: !table.hasAttribute('nopagekey'),
+      rewriteurl: !table.hasAttribute('norewriteurl'),
+    }
+    
+    table.innerHTML = "";
+    if(!table.data) table.data = [];      
+    if(!table.sortedData) table.sortedData = table.data.map(value => value);
+
+    if(!table.headerAll && table.data.length > 0){
+      table.headerAll = generateHeader(table.data);
+      
+      table.hiddenColumns = table.hiddenColumns.concat(table.headerAll.filter(column =>
+        table.hiddenColumnsCondition
+          .map(condition => ({col: column, hidden: condition(column, table.data)}))
+          .filter(columnCond => columnCond.hidden)
+          .map(columnCond => columnCond.col)
+          .includes(column)
+      ));
+    }
+
+    if(table.headerAll && table.elements.columnChooserCheckbox) {
+      for(let column of table.headerAll){
+        if(table.hiddenColumns.includes(column)){
+          table.elements.columnChooserCheckbox[column].checked = false;
+        } else {
+          table.elements.columnChooserCheckbox[column].checked = true;
+        }
+      }
+    }
+
+    if(table.headerAll){
+      table.header = 
+        table.headerAll.filter(column => 
+          !table.hiddenColumns.includes(column)
+        )
+      table.style.gridTemplateColumns = `repeat(${table.header.length}, max-content)`;
+    }
+
+    if(table.drawOptionals.header && table.header){
+      createHeader(table);
+    }
+    
+    if(table.drawOptionals.filter && table.header){
+      createFilter(table, table.header, table.filter);
+    }
+
+    if (table.data.length > 0){
+      table.displayedData = drawData(table);
+
+      //? Log, that is send to Tracker Server:
+      console.log('Finished transform of data.', table.displayedData, appname);
+
+      table.elements.pageChooser = createPageChooser(table, table.displayedData);
+
+      if (table.drawOptionals.footer) createFooter(table, table.displayedData, table.elements.pageChooser);
+    }
+
+    if (table.drawOptionals.pagekey){
+      addKeyHandlerToDocument(table);
+    }
+  }
+
+  function drawData(table){
+    table.sortedData = applySorting(table);
+    applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalStyleOptions);
+    let formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
+    let filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
+    table.pagination.filteredDataCount = filteredData.length;
+    let pageinatedData = applyPagination(table, filteredData);
+    table.style.gridTemplateRows = `${
+      table.drawOptionals.header ? 'max-content' : ''} ${
+        table.drawOptionals.filter ? 'max-content' : ''} repeat(${pageinatedData.length}, max-content) ${
+          table.drawOptionals.footer ? 'max-content' : ''}`; 
+    fillData(table, pageinatedData);
+    applyConditionalRowStyling(table, pageinatedData, table.header, table.conditionalRowStyle, table.conditionalStyleOptions);
+    return pageinatedData;
+  }
+
+  function defineHiddenProperties(table, props){
+    props.forEach(prop => Object.defineProperty(table, prop, {
+      enumerable: false,
+      writable: true,
+      // configurable: true,
+    }))
+  }
+
+  function defineOptionProperties(table, props){
+    props.forEach(prop => 
+      Object.defineProperty(table, prop, {
+        enumerable: true,
+        writable: true
+      })
+    );
+  }
+
+  const funRegex = /^((?:function\s*.*){0,1}\(([^\(\{\[\=\>]*)\)\s*(?:=>|\{)\s*[\{\(]{0,1}.*[\}\)]{0,1})$/gy;
+
+  function deserializeFunction(funStr){
+    let match = funRegex.exec(funStr);
+    let args = match.groups[2].split(',').map(str => str.trim())
+    return new Function(...args, `return (${funStr.toString()})(${args.join(', ')})`)
+  }
+
+  function serializeFunction(fun){
+    return fun.toString();
+  }
+
+  function replaceUrlSearchParameter(newParamKey, newParamValue){
+    let result = '?';
+    let replaced = false;
+    let oldParams = location.search.slice(1).split('&')
+    if(oldParams.length > 1){
+      oldParams.forEach(oldParam => {
+        let oldParamKey = oldParam.split('=')[0];
+        if(oldParamKey == newParamKey) {
+          replaced = true;
+          result += `${oldParamKey}=${newParamValue}&`;
+        }
+        else result += `${oldParamKey}=${oldParam.split('=').slice(1).join('=')}&`;
+      })
+    } else if(oldParams.length == 1){
+      if (oldParams[0] == ""){
+        replaced = true;
+        result += `${newParamKey}=${newParamValue}&`;
+      } else {
+        if (oldParams[0].split('=')[0] == newParamKey){
+          replaced = true;
+          result += `${newParamKey}=${newParamValue}&`;
+        } else {
+          result += `${oldParams[0].split('=')[0]}=${oldParams[0].split('=').slice(1).join('=')}&`;
+        }
+      }
+    }
+    if (!replaced) result += `${newParamKey}=${newParamValue}&`;
+    return result.slice(0, -1) + location.hash;
+  }
+
+  function reapplySorting(table, partialOptions){
+    console.log('reaply sorting')
+    resetSorting(table);
+    partialOptions['sortedBy'].reverse().slice(-4).forEach(sortStep => {
+      if(sortStep.dir == 'desc'){
+        onSortClick(table, sortStep.col)
+      }
+      onSortClick(table, sortStep.col)
+    })
+  }
+
+  /**
+   * TableComponent is the implementation of wc-grid-table (short: wgt).
+   * 
+   * The following functions are exposed when creating a wgt HTML element (documented in there respective docstring):
+   *  - useDefaultOptions()
+   *  - connectedCallback()
+   *  - setDebounceFn(debounceFn, sortDebounceOptions, filterDebouncedOptions)
+   *  - setData(data)
+   *  - getDisplayedData()
+   *  - getOriginalData()
+   *  - redrawData()
+   * 
+   * The following properties can be accessed directly:
+   *  - root_document - either document or the connected shadowRoot
+   *  - conditionalColumnStyle - an object with keys ["condition", "styles"] where condition is a function "(data : Array<Object> , column : string) => Boolean" and styles is
+   *    an Array of strings with styles, that should apply when "condition" returns true for a column.
+   *    Can be used to style a column in dependency of their data. 
+   *  - conditionalStyleOptions - an object with options concerning conditionalColumnStyle and conditionalRowStyle. Available Options:
+   *      - active: Boolean
+   *  - formatter - an Object with column names as keys, containing lists of formatter functions, that should be applied before displaing a table value. Formatter functions
+   *    have this signature: "(value, rowIndex, completeData) => any". Formatter get applied in the sequence they are in the list (leftmost function (2nd from left (3rd ...))).
+   *  - formatterOptions - an object with options concerning formatter. Available Options:
+   *      - active: Boolean
+   *  - filter - an Object with column names as keys, containing strings which correspond to the filter input values in the ui. 
+   *    Those get validated by filterOperations.fn.
+   *  - filterOptions - an object with options concerning filter. Available Options:
+   *      - active: Boolean
+   *  - filterOperations - an object with operations, filters and chars for different filter options toggleable. `{Column1: {name: 'modFilter', char: '%', fn: function(filterInput, testValue)}}`
+   *  - sortedBy - an Array of Objects describing sorting. Keys are col - column name sorted - and dir - the sort direction (one of ["asc", "desc"]). Sorting is kept after each
+   *    sorting operation, so that primary, secondary, tertiary, ... sorting is possible.
+   *  - sortOptions - an object with options concerning sorting. Available Options:
+   *      - active: Boolean
+   *  - customChooseSortsCompareFn - a function maps columns to sorting behavior. Expected return for given (table: TableComponent instance, data: Array<Object>, column: string)
+   *    is a function to compare the values of this column.
+   *  - customCompareNumbers / customCompareText - functions to replace default sort behavior corresponing to sorting numbers / text. Like default js CompareFn used in Array.prototype.sort
+   */
+  class TableComponent extends HTMLElement{
+    constructor(){
+      super();
+
+      defineSetPrototypeFunctions();
+
+      this.linkOptions = [
+        'pagination',
+        'filter',
+        'sortedBy',
+        'activeFilterOperations',
+        'hiddenColumns',
+      ]
+
+      defineHiddenProperties(this, [
+        'options',
+        'root_document',
+        'optionalDebounceFn',
+        'sortedData',
+        'data',
+        'header',
+        'displayedData',
+        'drawOptionals',
+        'elements',
+        'tableId',
+      ]);
+
+      this.options = {}
+
+      defineOptionProperties(this, [
+        'conditionalColumnStyle',
+        'conditionalRowStyle',
+        'conditionalStyleOptions',
+        'formatter',
+        'formatterOptions',
+        'filter',
+        'filterOptions',
+        'filterOperations',
+        'activeFilterOperations',
+        'sortedBy',
+        'sortOptions',
+        'pagination',
+        'customCompareNumbers',
+        'customCompareText',
+        'customChooseSortsCompareFn',
+        'hiddenColumns',
+        'hiddenColumnsCondition',
+      ]);
+
+      this.useDefaultOptions();
+    }
+
+    /**
+     * Reset Options to the default configuration.
+     */
+    useDefaultOptions(){
+      this.root_document = document;
+
+      this.elements = {};
+
+      this.tableId = 0;
+
+      this.data = [];
+      
+      this.hiddenColumns = []; // ['Einzelpreis'];
+      this.hiddenColumnsCondition = [
+        (column, data) => (column.startsWith('#')),
+      ];
+
+      this.elements.sortArrows = {};
+      this.optionalDebounceFn = undefined;
+      this.activeFilterOperations = {};
+
+      this.paginationOptions = {
+        active: true,
+      }
+
+      this.pagination = {
+        active: true,
+        currentPage: 1,
+        pageSize: 40,
+      }
+
+      this.filterOperations = [
+        {name: 'containsEx', char: '&sube;', fn: regexFilter.bind(null, false)}, 
+        {name: 'notContainsEx', char: '&#8840;', fn: regexFilter.bind(null, true)}, 
+        {name: 'equals', char: '=', fn: compareFilter.bind(null, (a, b) => a == b)}, 
+        {name: 'greater', char: '>', fn: compareFilter.bind(null, (a, b) => a < b)}, 
+        {name: 'greaterEquals', char: '&ge;', fn: compareFilter.bind(null, (a, b) => a <= b)}, 
+        {name: 'lesser', char: '<', fn: compareFilter.bind(null, (a, b) => a > b)}, 
+        {name: 'lesserEquals', char: '&le;', fn: compareFilter.bind(null, (a, b) => a >= b)}, 
+        {name: 'unEquals', char: '&ne;', fn: compareFilter.bind(null, (a, b) => a != b)}, 
+      ]
+
+      this.conditionalColumnStyle = []; /*[
+        {
+          condition: (data, column) => (!Number.isNaN(data.reduce((col, cur) => (col += typeof cur[column] === "string" ? NaN : (cur[column] != undefined ? cur[column] : 0)), 0))),
+          styles: ["text-align: right;"]
+        },
+      ]*/
+
+      this.conditionalRowStyle = {
+       /* Rabattsatz: [
+          {
+            condition: function(value, index){
+              return value == 0 && index % 2 != 0;
+            },
+            styles: ["background-color: lightcoral;", "color: black;"],
+            fullrow: true
+          }, {
+            condition: function(value, index){
+              return value == 0 && index % 2 == 0;
+            },
+            styles: ["background-color: darksalmon;", "color: black;"],
+            fullrow: true
+          }, {
+            condition: function(value, index){
+              return value > 0 && index % 2 != 0;
+            },
+            styles: ["background-color: lightgreen;", "color: black;"],
+            fullrow: true
+          }, {
+            condition: function(value, index){
+              return value > 0 && index % 2 == 0;
+            },
+            styles: ["background-color: darkseagreen;", "color: black;"],
+            fullrow: true
+          }
+        ]*/
+      }
+
+      this.conditionalStyleOptions = {
+        "active": true,
+      }
+
+      this.formatter = {}
+      this.formatterOptions = {
+        "active": true,
+      }
+
+      this.filter = {}
+      this.filterOptions = {
+        "active": true,
+      }
+
+      this.sortedBy = [];
+      this.sortOptions = {
+        "active": true,
+      }
+      this.customCompareNumbers = compareNumbers;
+      this.customCompareText = compareText;
+      this.customChooseSortsCompareFn = chooseSortsCompareFn;
+      
+      this.drawOptionals = {}
+    }
+
+    loadPartialOptions(partialOptions){
+      if (this.data.length > 0){
+        console.log('partial', partialOptions)
+        Object.keys(partialOptions).forEach(option => {
+          if(option == 'sortedBy'){
+            reapplySorting(this, partialOptions);
+          } else if (option == 'hiddenColumns') {
+            this[option] = partialOptions[option];
+            this.redrawTable()
+          } else {
+            this[option] = partialOptions[option];
+          }
+        });
+        resetFilterOperations(this)
+        this.redrawData()
+      }
+    }
+
+    serializeLinkOptions(){
+      let linkOptions = new Object();
+      this.linkOptions.forEach(option => {
+        linkOptions[option] = this[option];
+      })
+      let newSerializedValue = btoa(JSON.stringify(linkOptions, (key, value) => value instanceof Function ? serializeFunction(value) : value));
+      let newUrlSearchParam = replaceUrlSearchParameter(`table${this.tableId}`, newSerializedValue);
+      if(this.drawOptionals.rewriteurl) history.replaceState(history.state, '', newUrlSearchParam)
+    }
+
+    loadLinkOptions(){
+      let serializedOptions = '{}';
+      location.search.slice(1).split('&').forEach(searchOption => {
+        let split = searchOption.split('=')
+        if(split[0] == `table${this.tableId}`){
+          serializedOptions = atob(split.slice(1).join('='));
+        }
+      })
+      let partialOptions = JSON.parse(serializedOptions, (key, value) => {
+        if (!(value instanceof Array)  && value.toString().match(funRegex)) {
+          return deserializeFunction(value)
+        } else {
+          return value
+        }
+      });
+      return partialOptions;
+      // this.redrawData():
+    }
+
+    serializeOptions(){
+      return btoa(JSON.stringify(this.options, (key, value) => value instanceof Function ? serializeFunction(value) : value))
+    }
+
+    deserializeOptions(serializedOptions){
+      if(serializedOptions){
+        return JSON.parse(atob(serializedOptions, (key, value) => {
+          if (!(value instanceof Array)  && value.toString().match(funRegex)) {
+            return deserializeFunction(value);
+          } else {
+            return value;
+          }
+        }));
+      } else {
+        return {};
+      }
+    }
+
+    loadSerializedOptions(serializedOptions){
+      this.options = JSON.parse(serializedOptions, (key, value) => {
+        if (!(value instanceof Array)  && value.toString().match(funRegex)) {
+          return deserializeFunction(value)
+        } else {
+          return value
+        }
+      });
+      // this.sortedData = applySorting(this);
+      this.redrawData();
+    }
+
+    /**
+     * Called when table is added to DOM. Doesn't need to be called manually.
+     */
+    connectedCallback(){
+      if(!this.root_document.body) this.root_document.body = document.createElement('body');
+      if(!this.root_document.head) this.root_document.head = document.createElement('head');
+
+      this.tableId = this.root_document.querySelectorAll('.wgt-grid-container').length
+      this.classList.add('wgt-grid-container')
+      if(!this.sortedData && this.data) this.sortedData = this.data.map(value => value);
+      let height = this.getAttribute('height');
+      if(height) this.style.maxHeight = height;
+      let pageSize = this.getAttribute('page-size');
+      if(pageSize) {
+        this.pagination.pageSize = pageSize;
+        this.options.pagination.pageSize = pageSize;
+      }
+
+      this.loadInitialOptions();
+      drawTable(this);
+    }
+
+    loadInitialOptions(){
+      let attributeOptions = this.deserializeOptions(this.getAttribute('options'));
+      let linkOptions = this.loadLinkOptions();
+
+      ((new Set(Object.keys(attributeOptions))).union(Object.keys(linkOptions))).forEach(option => {
+        if(attributeOptions[option]){
+          this.options[option] = attributeOptions[option];
+        }
+        if(linkOptions[option] && Object.keys(linkOptions[option]).length != 0){
+          this.options[option] = linkOptions[option];
+        }
+      });
+      console.log(this.options)
+
+      this.loadPartialOptions(this.options);
+    } 
+
+    /**
+     * Configure a debounce function for event based table changes like sortClick and filterChange.
+     * 
+     * @param {Function} debounceFn a debounce function; has to return the debounced function; the debounced function should implement a cancel function. (tested with lodash.debounce)
+     * @param {Array<any>} sortDebounceOptions the arguments list for the sort click event required by the debounce function.
+     * @param {Array<any>} filterDebouncedOptions the arguments list for the filter change event required by the debounce  by the debounce function.
+     */
+    setDebounceFn(debounceFn, sortDebounceOptions, filterDebouncedOptions){
+      if(this.optionalDebounceFn) {
+        onSortClick.cancel()
+        filterChanged.cancel()
+      }
+      this.optionalDebounceFn = debounceFn;
+      onSortClick = this.optionalDebounceFn(onSortClick, ...sortDebounceOptions);
+      filterChanged = this.optionalDebounceFn(filterChanged, ...filterDebouncedOptions);
+    }
+
+    /**
+     * Set the data to be displayed by table as a list of row objects.
+     * 
+     * @param {Array<Object>} data 
+     */
+    setData(data){
+      this.data = data;
+      // console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
+      this.sortedData = data.map(value => value);
+      drawTable(this);
+      this.loadInitialOptions();
+    }
+
+    /**
+     * Get the data that is sorted, formatted and filtered.
+     */
+    getDisplayedData(){
+      return this.displayedData;
+    }
+
+    /**
+     * Get the original Data that was supplied to the table.
+     */
+    getOriginalData(){
+      return this.data;
+    }
+
+    /**
+     * Force a refresh, in case the data has changed. Alternatively you can call TableComponent.setData(newData).
+     */
+    redrawData(){
+      this.header.forEach(column => {
+        if (this.elements.dataCells[column]) [].forEach.call(this.elements.dataCells[column], element => element.remove());
+        if (this.drawOptionals.filter && this.elements.filterCells[column].firstChild.textContent != this.filter[column]) this.elements.filterCells[column].firstChild.textContent = this.filter[column];
+        // this.elements.filterCells[column].firstChild.textContent = this.filter[column] ? this.filter[column] : '';
+
+      }); 
+      if (this.data.length > 0){
+        let wasSelected = this.elements.pageChooser ? this.elements.pageChooser.classList.contains('selected') : false;
+        this.displayedData = drawData(this);
+        this.elements.pageChooser = createPageChooser(this, this.displayedData);
+        if (this.drawOptionals.footer) createFooter(this, this.displayedData, this.elements.pageChooser);
+        if (wasSelected) this.elements.pageChooser.classList.add('selected');
+      }
+    }
+
+    redrawTable(){
+      //this.sortedData = this.data.map(value => value);
+      let partialOptions = {};
+      Object.keys(this.options).forEach(option => {
+        if(this.linkOptions.includes(option)){
+          partialOptions[option] = this[option];
+        }
+      });
+      drawTable(this);
+      reapplySorting(this, partialOptions);
+    }
+  }
+
+  return {regexFilter, textFilter, compareNumbers, compareText, chooseSortsCompareFn, defineCustomElement, TableComponent};
+})()
+
+
+},{"./filter-utils.js":3,"./pagination-utils.js":4,"./wc-grid-table.css":5}]},{},[1]);

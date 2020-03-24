@@ -6,6 +6,7 @@
   "scripts": {
     "bundle": "browserify -g browserify-css index.js > prot-table-v3.js",
     "bundle-min": "browserify -p tinyify -g browserify-css index.js > prot-table-v3.js",
+    "serve": "http-server .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

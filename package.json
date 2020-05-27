@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "bundle": "browserify -g browserify-css index.js > prot-table-v3.js",
-    "bundle-min": "browserify -p tinyify -g browserify-css index.js > prot-table-v3.js",
+    "bundle-min": "browserify -p tinyify --full-paths -g browserify-css index.js > prot-table-v3.js",
     "serve": "http-server .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,6 +17,6 @@
     "tinyify": "^2.5.1"
   },
   "dependencies": {
-    "wc-grid-table": "^2.1.0"
+    "wc-grid-table": "^2.1.6"
   }
 }

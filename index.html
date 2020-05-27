@@ -6,6 +6,14 @@
 </head>
 
 <body>
-  <div id="con"></div>
-  <prot-table-v3 data_url="grouped_data.json"></prot-table-v3>
+  <prot-table-v3 id="tab"></prot-table-v3>
+  <script>
+    fetch('grouped_data.json')
+      .then(response => response.json())
+      .then(data => {
+        document.querySelector("#tab").setData(data)
+      })
+  </script>
+  <!-- <prot-table-v3 data_url="grouped_data.json"></prot-table-v3>
+  <prot-table-v3 data_url="grouped_data.json"></prot-table-v3> -->
 </body>

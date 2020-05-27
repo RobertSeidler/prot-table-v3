@@ -1,0 +1,10 @@
+div.wgt-header div {
+  word-wrap: normal;
+  white-space: nowrap;
+}
+
+prot-table-v3 ul {
+  padding-top: 5px;
+  padding-left: 10px;
+  background-color: white;
+}

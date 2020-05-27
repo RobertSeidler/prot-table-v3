@@ -1,7 +1,6 @@
 let wcGridTable = require("wc-grid-table/src/wc-grid-table.js");
 
-
-
+require('./style.css');
 // wcGridTable.defineCustomElement()
 
 class ProtTable extends wcGridTable.TableComponent {
@@ -18,7 +17,7 @@ class ProtTable extends wcGridTable.TableComponent {
 
     if(height) this.style.maxHeight = height;
     if(pageSize){
-      this.pagination.pageSize = pageSize;
+      // this.pagination.pageSize = Number.parseInt(pageSize);
       // this.options.pagination.pageSize = pageSize;
     } else{
       this.pagination.pageSize = 500;

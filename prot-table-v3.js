@@ -7,7 +7,6 @@ require('./style.css');
 class ProtTable extends wcGridTable.TableComponent {
   useDefaultOptions(){
     super.useDefaultOptions();
-    
   }
 
   connectedCallback(){
@@ -45,7 +44,6 @@ class ProtTable extends wcGridTable.TableComponent {
   }
 
   setupProtTableData(){
-
     let jsonUrl = this.getAttribute('data_url');
     if(jsonUrl){
       fetch(jsonUrl)

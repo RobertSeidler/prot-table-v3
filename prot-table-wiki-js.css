@@ -1,0 +1,40 @@
+.contents .query {
+  display: none
+}
+
+.contents button.prot-table-data-btn, .contents button.prot-table-query-btn {
+  padding: 0 1.5rem 0.3rem;
+  padding-top: 0.3rem;
+  margin: 0.5rem;
+  background-color: aliceblue;
+  border-radius: 20px;
+  color: rgba(0, 0, 0, 0.7);
+  border: 1px solid #1565c0;
+}
+
+.contents pre.prot-table-query, .contents pre.prot-table-data {
+  transition: height 2s ease 0s, visibility 0s ease 1s;
+  position: absolute;
+  z-index: 98;
+  width: 100%;
+}
+
+.contents div.prot-table-display-btn-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.contents .column-chooser-menu-container {
+  position: absolute;
+}
+
+.contents .column-chooser-menu-container ul {
+  padding-top: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
+  background-color: white;
+}
+
+.contents .column-chooser-menu-container ul li label input {
+  margin-right: 3px;
+}

@@ -1,22 +1,24 @@
 {
-  "name": "prot-table-v3",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "bundle": "browserify -g browserify-css index.js > prot-table-v3.js",
-    "bundle-min": "browserify -p tinyify --full-paths -g browserify-css index.js > prot-table-v3.js",
-    "serve": "http-server .",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "browserify": "^16.5.0",
-    "browserify-css": "^0.15.0",
-    "tinyify": "^2.5.1"
-  },
-  "dependencies": {
-    "wc-grid-table": "^2.1.6"
-  }
+    "name": "prot-table-v3",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "bundle": "browserify -g browserify-css --debug index.js > prot-table-v3.js",
+        "bundle-min": "browserify -g browserify-css -g uglifyify index.js > prot-table-v3.js",
+        "serve": "http-server .",
+        "upload": "scp prot-table-v3.js protronic@prot-subuntu:/var/docker/tomcat/webapps/static/wikiscripts",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "browserify": "^16.5.0",
+        "browserify-css": "^0.15.0",
+        "tinyify": "^2.5.1",
+        "uglifyify": "^5.0.2"
+    },
+    "dependencies": {
+        "wc-grid-table": "^2.1.16"
+    }
 }

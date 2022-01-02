@@ -132,8 +132,8 @@ class MarkInput extends HTMLElement {
             /**
              * The text, which is added to the checkbox, so that it can be filtered with table. MarkerText needs to be a string with "|" as separetor character. Left value is for checked, right for unchecked. Optional (default: "-1|0") 
              */
-            // MarkerText: this.getAttribute('markertext') ? this.getAttribute('markertext') : "ja|nein",
-            MarkerText: "ja|nein",
+            // MarkerText: this.getAttribute('markertext') ? this.getAttribute('markertext') : "true|false",
+            MarkerText: "true|false",
         };
 
         /**
@@ -210,7 +210,7 @@ class MarkInput extends HTMLElement {
      */
     createFilterElement() {
         let [markedText, unmarkedText] = this.dataAttributes.MarkerText.split('|');
-        this.dataElements.FilterTextSpan.style.visibility = 'hidden';
+        this.dataElements.FilterTextSpan.style.display = 'none';
         this.dataElements.FilterTextSpan.textContent = this.dataAttributes.IsChecked ? markedText : unmarkedText;
         this.append(this.dataElements.FilterTextSpan);
     }
@@ -220,11 +220,16 @@ class MarkInput extends HTMLElement {
      * @param {boolean} updateTable - true means the rest of the table is getting an setChecked(false) call.
      */
     setChecked(updateTable) {
+        let [setMarker, unsetMarker] = this.dataAttributes.MarkerText.split('|');
         this.dataAttributes.IsChecked = true;
         this.toggleAttribute('checked', true);
+        // this.toggleAttribute(setMarker, true);
+        // this.removeAttribute(unsetMarker)
         this.dataElements.CheckboxInput.toggleAttribute('checked', true);
+        // this.dataElements.CheckboxInput.toggleAttribute(setMarker, true);
+        // this.dataElements.CheckboxInput.removeAttribute(setMarker);
         this.dataElements.CheckboxInput.checked = true;
-        this.dataElements.FilterTextSpan.textContent = this.dataAttributes.MarkerText.split('|')[0];
+        this.dataElements.FilterTextSpan.textContent = setMarker;
         // if (updateTable) this.dataProperties.ParentTable.data.filter((entry) => (console.log(entry['marker']), entry[this.dataAttributes.IdentifierField] == this.dataAttributes.IdentifierValue)).map(entry => (entry['marker'].setChecked(false)));
         if (updateTable) document.querySelectorAll(`.table-id-${this.dataProperties.ParentTable.tableId} mark-input.marker_${this.dataAttributes.IdentifierValue}`).forEach(
             (marker) => (marker.setChecked(false))
@@ -236,11 +241,16 @@ class MarkInput extends HTMLElement {
      * @param {boolean} updateTable - true means the rest of the table is getting an setChecked(false) call.
      */
     unsetChecked(updateTable) {
+        let [setMarker, unsetMarker] = this.dataAttributes.MarkerText.split('|');
         this.dataAttributes.IsChecked = false;
-        this.toggleAttribute('checked', false);
+        this.removeAttribute('checked');
+        // this.toggleAttribute(unsetMarker);
+        // this.removeAttribute(setMarker);
         this.dataElements.CheckboxInput.removeAttribute('checked');
+        // this.dataElements.CheckboxInput.toggleAttribute(unsetMarker);
+        // this.dataElements.CheckboxInput.removeAttribute(setMarker);
         this.dataElements.CheckboxInput.checked = false;
-        this.dataElements.FilterTextSpan.textContent = this.dataAttributes.MarkerText.split('|')[1];
+        this.dataElements.FilterTextSpan.textContent = unsetMarker;
         // if (updateTable) this.dataProperties.ParentTable.data.filter((entry) => (entry[this.dataAttributes.IdentifierField] == this.dataAttributes.IdentifierValue)).map(entry => (entry[this.dataAttributes.IdentifierField].unsetChecked(false)));
         if (updateTable) document.querySelectorAll(`.table-id-${this.dataProperties.ParentTable.tableId} mark-input.marker_${this.dataAttributes.IdentifierValue}`).forEach(
             (marker) => (marker.unsetChecked(false))

@@ -96,7 +96,7 @@ class ProtTable extends wcGridTable.TableComponent {
             markerText: this.getAttribute('marker_markertext'),
         };
 
-        if (Reflect.ownKeys(requiredAttributes).map((key) => requiredAttributes[key]).every((value) => (value === undefined ? false : true))) {
+        if (Reflect.ownKeys(requiredAttributes).map((key) => requiredAttributes[key]).every((value) => (value == undefined ? false : true))) {
             // console.log(data);
             return this.generateMarkInputData(data, requiredAttributes, optionalAttributes);
         } else {

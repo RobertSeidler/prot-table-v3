@@ -120,7 +120,6 @@ class MarkInput extends HTMLElement {
 
             /**
              * The tablename for SQLServer, where the marked values are saved. The attribute "databaseTable" is not absolutly required, but the default table is only a fallback and it should not be used (default: "DefaultTable")!
-             * TODO: table creation is not implemented yet.
              */
             DatabaseTable: this.getAttribute('databasetable') ? this.getAttribute('databasetable') : "DefaultTable",
 
@@ -259,7 +258,6 @@ class MarkInput extends HTMLElement {
 
     /**
      * Create the table in SQLServer, if it doesn't already exist.
-     * TODO: Needs to be called once for all "MarkInput" elements inside of a table. 
      */
     createTable() {
         console.log(this.dataProperties.CreateTableQuery());
@@ -326,7 +324,18 @@ async function fetchSelectCheckedValues(db, dbuser, dbTable, idField) {
         })
         .then(response => (response.json()))
         .then(data => {
-            // console.log(data);
+            return data;
+        });
+}
+
+async function fetchCreateTableIfNotExists(db, dbuser, dbTable) {
+    return fetch(databaseUrl(db, dbuser), {
+            method: 'POST',
+            headers: header,
+            body: createFetchBody(createTableQuery.bind(this, dbTable)),
+        })
+        .then(response => (response.json()))
+        .then(data => {
             return data;
         });
 }
@@ -335,5 +344,6 @@ async function fetchSelectCheckedValues(db, dbuser, dbTable, idField) {
 
 module.exports = {
     MarkInput,
-    fetchSelectCheckedValues
+    fetchSelectCheckedValues,
+    fetchCreateTableIfNotExists,
 };

@@ -1,5 +1,5 @@
 let wcGridTable = require("wc-grid-table/src/wc-grid-table.js");
-let { MarkInput, fetchSelectCheckedValues } = require("./MarkInput");
+let { MarkInput, fetchSelectCheckedValues, fetchCreateTableIfNotExists } = require("./MarkInput");
 
 require('./style.css');
 // wcGridTable.defineCustomElement()
@@ -91,13 +91,14 @@ class ProtTable extends wcGridTable.TableComponent {
         };
 
         const optionalAttributes = {
-            database: this.getAttribute('marker_database'),
-            databaseuser: this.getAttribute('marker_databaseuser'),
+            database: this.getAttribute('marker_database') ? this.getAttribute('marker_database') : "MarkerDB",
+            databaseuser: this.getAttribute('marker_databaseuser') ? this.getAttribute('marker_databaseuser') : "wiki",
             markerText: this.getAttribute('marker_markertext'),
         };
 
         if (Reflect.ownKeys(requiredAttributes).map((key) => requiredAttributes[key]).every((value) => (value == undefined ? false : true))) {
             // console.log(data);
+            await fetchCreateTableIfNotExists(optionalAttributes.database, optionalAttributes.databaseuser, requiredAttributes.databaseTable);
             return this.generateMarkInputData(data, requiredAttributes, optionalAttributes);
         } else {
             return data;
@@ -138,8 +139,6 @@ class ProtTable extends wcGridTable.TableComponent {
         let { identifierField, databaseTable } = reqAttr;
         let { database, databaseuser, markerText } = optAttr;
 
-        database = database ? database : "MarkerDB";
-        databaseuser = databaseuser ? databaseuser : "wiki";
         // databaseTable = databaseTable ? databaseTable : "DefaultTable";
         // markerText = markerText ? markerText : "jjj|nnn";
 

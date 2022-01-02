@@ -1,19 +1,21 @@
 <!DOCTYPE html>
+
 <head>
-  <meta charset="utf-8"/>
-  <script src="./prot-table-v3.js"> </script>
-  <!-- <link rel="stylesheet" type="text/css" href="table.css"> -->
+    <meta charset="utf-8" />
+    <script src="./prot-table-v3.js">
+    </script>
+    <!-- <link rel="stylesheet" type="text/css" href="table.css"> -->
 </head>
 
 <body>
-  <prot-table-v3 id="tab"></prot-table-v3>
-  <script>
-    fetch('grouped_data.json')
-      .then(response => response.json())
-      .then(data => {
-        document.querySelector("#tab").setData(data)
-      })
-  </script>
-  <!-- <prot-table-v3 data_url="grouped_data.json"></prot-table-v3>
+    <prot-table-v3 id="tab" data_url="grouped_data.json" marker_identifierfield="BelID" marker_databasetable="InventurCurrentRecount"></prot-table-v3>
+    <!-- <script>
+        fetch('grouped_data.json')
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector("#tab").setData(data)
+            })
+    </script> -->
+    <!-- <prot-table-v3 data_url="grouped_data.json"></prot-table-v3>
   <prot-table-v3 data_url="grouped_data.json"></prot-table-v3> -->
 </body>

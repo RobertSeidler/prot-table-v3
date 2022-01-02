@@ -19,6 +19,6 @@
         "uglifyify": "^5.0.2"
     },
     "dependencies": {
-        "wc-grid-table": "^2.1.16"
+        "wc-grid-table": "^3.0.0"
     }
 }

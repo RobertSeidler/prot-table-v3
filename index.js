@@ -1,4 +1,5 @@
 let wcGridTable = require("wc-grid-table/src/wc-grid-table.js");
+let debounce = require('lodash.debounce');
 let { MarkInput, fetchSelectCheckedValues, fetchCreateTableIfNotExists } = require("./MarkInput");
 
 require('./style.css');
@@ -66,6 +67,8 @@ class ProtTable extends wcGridTable.TableComponent {
 
     }
 
+
+
     setupProtTableData() {
 
         let jsonUrl = this.getAttribute('data_url');
@@ -77,6 +80,8 @@ class ProtTable extends wcGridTable.TableComponent {
                         .then(markData => this.setData(markData));
                 });
         }
+
+        this.setDebounceFn(debounce, [200, { leading: true, trailing: false }], [500, { trailing: true, leading: false }])
     }
 
     /**
@@ -86,14 +91,14 @@ class ProtTable extends wcGridTable.TableComponent {
      */
     async setupMarkInputs(data) {
         const requiredAttributes = {
-            identifierField: this.getAttribute('marker_identifierfield'),
-            databaseTable: this.getAttribute('marker_databasetable'),
+            identifierField: this.getAttribute('marker-identifierfield'),
+            databaseTable: this.getAttribute('marker-databasetable'),
         };
 
         const optionalAttributes = {
-            database: this.getAttribute('marker_database') ? this.getAttribute('marker_database') : "MarkerDB",
-            databaseuser: this.getAttribute('marker_databaseuser') ? this.getAttribute('marker_databaseuser') : "wiki",
-            markerText: this.getAttribute('marker_markertext'),
+            database: this.getAttribute('marker-database') ? this.getAttribute('marker-database') : "MarkerDB",
+            databaseuser: this.getAttribute('marker-databaseuser') ? this.getAttribute('marker-databaseuser') : "wiki",
+            markerText: this.getAttribute('marker-markertext'),
         };
 
         if (Reflect.ownKeys(requiredAttributes).map((key) => requiredAttributes[key]).every((value) => (value == undefined ? false : true))) {
@@ -146,8 +151,10 @@ class ProtTable extends wcGridTable.TableComponent {
             .then((checkedData) => {
                 return data.map((entry) => {
                     let checked = checkedData.map((value) => value.identifierValue).includes(entry[identifierField].toString());
+
                     return {
                         'marker': this.createMarkInput(identifierField, entry[identifierField].toString(), databaseTable, database, databaseuser, markerText, checked),
+                        '#markiert': checked ? 'ja' : 'nein',
                         ...entry,
                     };
                 });

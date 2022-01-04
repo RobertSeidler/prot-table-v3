@@ -230,9 +230,12 @@ class MarkInput extends HTMLElement {
         this.dataElements.CheckboxInput.checked = true;
         this.dataElements.FilterTextSpan.textContent = setMarker;
         // if (updateTable) this.dataProperties.ParentTable.data.filter((entry) => (console.log(entry['marker']), entry[this.dataAttributes.IdentifierField] == this.dataAttributes.IdentifierValue)).map(entry => (entry['marker'].setChecked(false)));
-        if (updateTable) document.querySelectorAll(`.table-id-${this.dataProperties.ParentTable.tableId} mark-input.marker_${this.dataAttributes.IdentifierValue}`).forEach(
-            (marker) => (marker.setChecked(false))
-        );
+        if (updateTable) {
+            document.querySelectorAll(`.table-id-${this.dataProperties.ParentTable.tableId} mark-input.marker_${this.dataAttributes.IdentifierValue}`).forEach((marker) => (marker.setChecked(false)));
+            this.setMarkierenData(true);
+        }
+        // this.parentElement.nextElementSibling.textContent = 'ja';
+        this.setMarkiertField(true);
     }
 
     /**
@@ -251,9 +254,36 @@ class MarkInput extends HTMLElement {
         this.dataElements.CheckboxInput.checked = false;
         this.dataElements.FilterTextSpan.textContent = unsetMarker;
         // if (updateTable) this.dataProperties.ParentTable.data.filter((entry) => (entry[this.dataAttributes.IdentifierField] == this.dataAttributes.IdentifierValue)).map(entry => (entry[this.dataAttributes.IdentifierField].unsetChecked(false)));
-        if (updateTable) document.querySelectorAll(`.table-id-${this.dataProperties.ParentTable.tableId} mark-input.marker_${this.dataAttributes.IdentifierValue}`).forEach(
-            (marker) => (marker.unsetChecked(false))
-        );
+        if (updateTable) {
+            document.querySelectorAll(`.table-id-${this.dataProperties.ParentTable.tableId} mark-input.marker_${this.dataAttributes.IdentifierValue}`).forEach((marker) => (marker.unsetChecked(false)));
+            this.setMarkierenData(false);
+        }
+        this.setMarkiertField(false);
+    }
+
+    setMarkierenData(bool) {
+        this.dataProperties.ParentTable.data = this.dataProperties.ParentTable.data.map(entry => {
+            if (entry[this.dataAttributes.IdentifierField] == this.dataAttributes.IdentifierValue) {
+                entry['#markiert'] = bool ? 'ja' : 'nein';
+                entry['marker'] = this.dataProperties.ParentTable.createMarkInput(
+                    this.dataAttributes.IdentifierField,
+                    this.dataAttributes.IdentifierValue,
+                    this.dataAttributes.DatabaseTable,
+                    this.dataAttributes.Database,
+                    this.dataAttributes.DatabaseUser,
+                    this.dataAttributes.MarkerText,
+                    bool
+                );
+            }
+            return entry;
+        });
+    }
+
+    setMarkiertField(bool) {
+        let nextSibling = this.parentElement.nextElementSibling;
+        if (nextSibling && nextSibling.classList.contains('wgt-column_#markiert')) {
+            nextSibling.textContent = bool ? 'ja' : 'nein';
+        }
     }
 
     /**

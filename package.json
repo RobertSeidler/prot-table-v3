@@ -7,7 +7,7 @@
         "bundle": "browserify -g browserify-css --debug index.js > prot-table-v3.js",
         "bundle-min": "browserify -g browserify-css -g uglifyify index.js > prot-table-v3.js",
         "serve": "http-server .",
-        "upload": "scp prot-table-v3.js protronic@prot-subuntu:/var/docker/tomcat/webapps/static/wikiscripts",
+        "upload": "scp prot-table-v3.js root@wiki:/var/lib/tomcat9/webapps/static/wikiscripts",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "",
@@ -20,6 +20,7 @@
     },
     "dependencies": {
         "lodash.debounce": "^4.0.8",
+        "prot-table-v3": "file:",
         "wc-grid-table": "^3.1.3"
     }
 }

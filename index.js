@@ -38,7 +38,7 @@ class ProtTable extends wcGridTable.TableComponent {
         })
 
         // fetch('http://10.19.28.94:5985/ang_prot-wiki/prot-wiki_Legende')
-        fetch('https://10.19.28.94:8084/query?database=formly', {
+        fetch('https://database.protronic-gmbh.de/query?database=formly', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -47,16 +47,23 @@ class ProtTable extends wcGridTable.TableComponent {
             })
             .then(response => response.json())
             .then(response => {
+                let formatterResult = {};
                 let links = response.map(entry => {
                     let newEntry = {}
                     newEntry[entry.synonym] = entry.link;
                     return newEntry;
                 });
-                Object.keys(links).forEach(key => {
-                    let tmp = links[key];
-                    links[key] = [(value) => `<a href="${tmp}${value}">${value}</a>`]
-                })
-                this.formatter = links;
+                links.forEach(link => {
+                    Object.keys(link).forEach(key => {
+                        // let tmp = link[key];
+                        if (!formatterResult[key]) {
+                            formatterResult[key] = [];
+                        }
+                        formatterResult[key].push((value) => (value.startsWith('<') ? value : `<a href="${link[key]}${value}">${value}</a>`));
+                    });
+                });
+                console.log(formatterResult);
+                this.formatter = formatterResult;
                 this.setupProtTableData();
             })
             .catch(err => {
@@ -67,11 +74,33 @@ class ProtTable extends wcGridTable.TableComponent {
 
     }
 
+    loadDataFromQuery(query) {
+        query = decodeURIComponent(query.replace(/\\n/g, '\n'));
 
+        let fetchOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query })
+        };
+
+        fetch('https://database.protronic-gmbh.de/query?database=OLReweAbf', fetchOptions)
+            .then(response => response.json())
+            .then(jsonResp => {
+                console.log(jsonResp);
+                this.setupMarkInputs(jsonResp)
+                    .then(markData => {
+                        markData.forEach(v => delete v.ROWSTAT);
+                        this.setData(markData);
+                    });
+            });
+    }
 
     setupProtTableData() {
 
         let jsonUrl = this.getAttribute('data_url');
+        jsonUrl = jsonUrl.replace(/^[a-zA-Z]*:\/\/[a-zA-Z0-9.-]*/, '');
+        let query = this.getAttribute('query');
+
         if (jsonUrl) {
             fetch(jsonUrl)
                 .then(data => data.json())
@@ -79,6 +108,8 @@ class ProtTable extends wcGridTable.TableComponent {
                     this.setupMarkInputs(data)
                         .then(markData => this.setData(markData));
                 });
+        } else if (query) {
+            loadDataFromQuery(query);
         }
 
         this.setDebounceFn(debounce, [200, { leading: true, trailing: false }], [500, { trailing: true, leading: false }])

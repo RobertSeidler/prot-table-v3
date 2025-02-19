@@ -21,6 +21,6 @@
     "dependencies": {
         "lodash.debounce": "^4.0.8",
         "prot-table-v3": "file:",
-        "wc-grid-table": "^3.1.7"
+        "wc-grid-table": "^3.1.8"
     }
 }

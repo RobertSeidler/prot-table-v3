@@ -8,7 +8,8 @@
         "bundle-min": "browserify -g browserify-css -g uglifyify index.js > prot-table-v3.js",
         "serve": "http-server .",
         "upload": "scp prot-table-v3.js root@wiki:/var/lib/tomcat9/webapps/static/wikiscripts",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "update": "npm install git@github.com:protronic/wc-grid-table-export-plugin.git#master"
     },
     "author": "",
     "license": "ISC",
@@ -21,6 +22,7 @@
     "dependencies": {
         "lodash.debounce": "^4.0.8",
         "prot-table-v3": "file:",
-        "wc-grid-table": "^3.1.8"
+        "wc-grid-table": "^3.1.8",
+        "wc-grid-table-xlsx-export": "github:protronic/wc-grid-table-export-plugin#master"
     }
 }

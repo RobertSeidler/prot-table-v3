@@ -1,6 +1,7 @@
 let wcGridTable = require("wc-grid-table/src/wc-grid-table.js");
 let debounce = require('lodash.debounce');
 let { MarkInput, fetchSelectCheckedValues, fetchCreateTableIfNotExists } = require("./MarkInput");
+let { ExportPlugin } = require("wc-grid-table-xlsx-export");
 
 require('./style.css');
 // wcGridTable.defineCustomElement()
@@ -13,6 +14,8 @@ class ProtTable extends wcGridTable.TableComponent {
 
     connectedCallback() {
         super.connectedCallback();
+
+        this.registerPlugin(ExportPlugin);
 
         let height = this.getAttribute('height');
         let pageSize = this.getAttribute('page-size');
